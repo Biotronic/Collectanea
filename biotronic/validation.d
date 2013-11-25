@@ -147,7 +147,13 @@ template validate(Constraints...) if (Constraints.length > 0) {
         import std.exception : enforce;
         import std.typetuple : TypeTuple;
         
-        foreach (fn; Constraints) {
+        static if (isValidated!T) {
+            alias actualConstraints = TypeSet!Constraints.complement!(T.constraints);
+        } else {
+            alias actualConstraints = Constraints;
+        }
+        
+        foreach (fn; actualConstraints) {
             staticEnforce!(is(typeof(fn(value))), loc ~ "Invalid constraint " ~ TypeTuple!(fn).stringof[6..$-1] ~ " for value of type " ~ T.stringof);
             static if (is(typeof({if (fn(value)){}}))) {
                 enforce(fn(value), loc ~ "Validation failed for value (" ~ value.to!string ~ "). Constraint: " ~ TypeTuple!(fn).stringof[6..$-1]);

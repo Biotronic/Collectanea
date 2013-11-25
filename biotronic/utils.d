@@ -1,6 +1,6 @@
 module biotronic.utils;
 
-import std.typetuple : TypeTuple, NoDuplicates, staticIndexOf;
+import std.typetuple : TypeTuple, NoDuplicates, staticIndexOf, EraseAll;
 import std.traits : Unqual, ParameterTypeTuple;
 
 void staticEnforce(bool criteria, string msg)() {
@@ -183,10 +183,22 @@ template TypeSet(T...) {
     template strictSuperSetOf(U...) {
         enum strictSuperSetOf = superSetOf!U && !is(CMP!T == CMP!U);
     }
+    
+    template complement(U...) {
+        template complementImpl(size_t n, V...) {
+            static if (n == U.length) {
+                alias complementImpl = V;
+            } else {
+                alias complementImpl = complementImpl!(n+1, EraseAll!(U[n], V));
+            }
+        }
+        alias complement = complementImpl!(0, T);
+    }
 } unittest {
     assert(TypeSet!(int, string).superSetOf!(int));
     assert(TypeSet!(int, string).superSetOf!(int, string));
     assert(!TypeSet!(int, string).superSetOf!(float));
     assert(!TypeSet!(int, string).superSetOf!(float, int, string));
     assert(!TypeSet!(int, string).superSetOf!(float, int));
+    assert(is(CMP!(TypeSet!(int, string).complement!int) == CMP!string));
 }
