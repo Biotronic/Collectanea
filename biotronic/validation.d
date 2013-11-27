@@ -77,7 +77,6 @@ struct Validated(T, _Constraints...) if (_Constraints.length > 0 && isSorted!_Co
     
     @disable this();
     
-    /+
     debug {
         this(int line = __LINE__, string file = __FILE__)(T other) {
             alias create = validate!constraints;
@@ -88,7 +87,6 @@ struct Validated(T, _Constraints...) if (_Constraints.length > 0 && isSorted!_Co
             this = validate!constraints(other);
         }
     }
-    +/
     
     this(U)(U other) if (isValidated!U && TypeSet!(U.constraints).superSetOf!(constraints) ) {
         _value = other._value;
