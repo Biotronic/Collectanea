@@ -1,5 +1,5 @@
 import std.traits : Parameters, isTypeTuple;
-import std.meta : AliasSeq, allSatisfy, Filter;
+import std.meta : AliasSeq, allSatisfy, Filter, staticIndexOf;
 
 // Example type
 struct Tuple(T...) {
@@ -25,7 +25,7 @@ struct Tuple(T...) {
         enum isValidPattern = impl!0;
     }
     
-    bool opMatch(P, T...)(P p, ref T args) if (isValidPattern!P) {
+    bool opMatch(Pattern, Args...)(Pattern p, ref Args args) if (isValidPattern!Pattern) {
         foreach (i, e; p.pattern) {
             static if (isTypeTuple!e) {
                 args[countTypes!(p.pattern[0..i])] = fields[i];
@@ -41,6 +41,28 @@ struct Tuple(T...) {
 
 auto tuple(T...)(T args) {
     return Tuple!T(args);
+}
+
+struct Algebraic(T...) {
+    union {
+        T fields;
+    }
+    size_t which;
+    
+    bool opMatch(Pattern, Type)(Pattern p, ref Type args) if (staticIndexOf!(Type, T) > -1) {
+        enum index = staticIndexOf!(Type, T);
+        if (index == which) {
+            args = fields[index];
+            return true;
+        }
+        return false;
+    }
+    
+    this(Type)(Type value) if (staticIndexOf!(Type, T) > -1) {
+        enum index = staticIndexOf!(Type, T);
+        fields[index] = value;
+        which = index;
+    }
 }
 
 
@@ -143,4 +165,12 @@ auto match(T)(ref T t) {
         _!(3, _) = () { n = 3; }
     );
     assert(n == 0);
+} unittest {
+    Algebraic!(int, string, float) a = 3.14f;
+    
+    assert(match(a) (
+        _!(int)    = (int f)    => 0,
+        _!(string) = (string f) => 1,
+        _!(float)  = (float f)  => 2
+    ) == 2);
 }
